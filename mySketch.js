@@ -5,12 +5,24 @@ let direction = 1;
 
 let trail = [];
 let clouds = [];
+let bubbles = [];
+
+// Pond properties
+let pондX;
+let pondY;
+let pondWidth = 200;
+let pondHeight = 100;
+let isInWater = false;
 
 function setup() {
   createCanvas(windowWidth, windowHeight);
   pelicanX = 0;
   pelicanY = height * 0.7;
   speedX = 2;
+
+  // Initialize pond position
+  pондX = width / 2 - pondWidth / 2;
+  pondY = height * 0.7;
 
   // Create initial clouds
   for (let i = 0; i < 5; i++) {
@@ -33,8 +45,28 @@ function draw() {
   noStroke();
   rect(0, height * 0.8, width, height * 0.2);
 
+  // Draw pond
+  drawPond();
+
   // trail
   drawTrail();
+
+  // Check if pelican is in water
+  checkWaterCollision();
+
+  // Draw bubbles if in water
+  if (isInWater) {
+    drawBubbles();
+    // Add new bubbles occasionally
+    if (frameCount % 10 == 0) {
+      bubbles.push({
+        x: pelicanX + random(-30, 30),
+        y: pelicanY + random(20, 50),
+        size: random(5, 15),
+        life: 60
+      });
+    }
+  }
 
   drawPelicanOnBike(pelicanX, pelicanY);
 
@@ -118,6 +150,65 @@ function drawPelicanOnBike(x, y) {
   line(10, -10, 20, 30);
 
   pop();
+}
+
+function drawPond() {
+  // Draw pond water
+  fill(70, 130, 180);
+  noStroke();
+  ellipse(pондX + pondWidth/2, pondY + pondHeight/2, pondWidth, pondHeight);
+  
+  // Add some water shimmer effect
+  fill(100, 150, 200, 100);
+  ellipse(pондX + pondWidth/2 + sin(frameCount * 0.1) * 10, pondY + pondHeight/2, pondWidth * 0.8, pondHeight * 0.8);
+}
+
+function checkWaterCollision() {
+  // Check if pelican is in the pond area
+  let pelicanCenterX = pelicanX;
+  let pelicanCenterY = pelicanY;
+  
+  // Calculate distance from pelican to pond center
+  let pondCenterX = pондX + pondWidth/2;
+  let pondCenterY = pondY + pondHeight/2;
+  
+  let distance = dist(pelicanCenterX, pelicanCenterY, pondCenterX, pondCenterY);
+  
+  // Check if pelican is within pond bounds (ellipse collision)
+  let normalizedX = (pelicanCenterX - pondCenterX) / (pondWidth/2);
+  let normalizedY = (pelicanCenterY - pondCenterY) / (pondHeight/2);
+  
+  if (normalizedX * normalizedX + normalizedY * normalizedY <= 1) {
+    isInWater = true;
+    // Sink the pelican slightly when in water
+    pelicanY = height * 0.7 + 20;
+  } else {
+    isInWater = false;
+    // Return to normal height when out of water
+    pelicanY = height * 0.7;
+  }
+}
+
+function drawBubbles() {
+  noStroke();
+  
+  // Update and draw existing bubbles
+  for (let i = bubbles.length - 1; i >= 0; i--) {
+    let bubble = bubbles[i];
+    
+    // Draw bubble
+    fill(255, 255, 255, map(bubble.life, 0, 60, 0, 150));
+    ellipse(bubble.x, bubble.y, bubble.size);
+    
+    // Move bubble up
+    bubble.y -= 1;
+    bubble.life--;
+    
+    // Remove dead bubbles
+    if (bubble.life <= 0 || bubble.y < pondY) {
+      bubbles.splice(i, 1);
+    }
+  }
 }
 
 function windowResized() {
